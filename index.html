@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Course Catalog Viewer</title>
+<title>Distribution Course Viewer</title>
 <style>
 :root{
   --bs-body-bg:#0b0c10; --bs-body-color:#e9ecef; --bs-muted:#adb5bd;
@@ -62,7 +62,6 @@ small.muted{color:var(--bs-muted)}
 .btn:active{transform:translateY(0)}
 .btn-primary{background:linear-gradient(180deg,#2a6fdb,#1b57bf); border-color:#1e4fae}
 .btn-outline{background:transparent}
-.btn-danger{background:linear-gradient(180deg,#d6336c,#a61e4d); border-color:#801a3f}
 
 .badge{
   display:inline-block; padding:.35rem .55rem; border-radius:999px; font-size:.75rem; line-height:1;
@@ -95,6 +94,9 @@ a{color:var(--bs-link)}
 .footer{color:var(--bs-muted); font-size:.9rem; padding-top:10px}
 hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
 .notice{color:#9fb3c8}
+.controls-top{display:flex; gap:10px; align-items:center; justify-content:space-between; margin:8px 0 14px}
+.controls-top .left{display:flex; align-items:center; gap:10px}
+.controls-top .right{display:flex; align-items:center; gap:10px}
 </style>
 </head>
 <body>
@@ -113,8 +115,8 @@ hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
         <div class="row">
           <div class="col col-8">
             <div class="input-group">
-              <input id="q" class="form-control" placeholder="Search across all fields (e.g., “anthropology”, “DG II”, “4 credits”, “diversity”)" />
-              <button class="btn" id="btnExact" title="Toggle exact phrase"><span id="exactIcon">≠</span> exact</button>
+              <input id="q" class="form-control" placeholder="Search across all fields (e.g., “anthropology”, “DG II”, “diversity”)" />
+              <button class="btn" id="btnExact" title="Toggle exact phrase"><span id="exactIcon">≡</span> exact</button>
             </div>
             <div class="footer">Tip: press <span class="kbd">/</span> to focus search. Click headers to sort.</div>
           </div>
@@ -136,17 +138,27 @@ hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
               <option>No</option>
             </select>
           </div>
-          <div class="col col-3">
-            <label class="footer">Credits (min)</label>
-            <input id="fMinCred" class="form-control" type="number" step="0.5" placeholder="e.g. 3" />
-          </div>
-          <div class="col col-3">
-            <label class="footer">Credits (max)</label>
-            <input id="fMaxCred" class="form-control" type="number" step="0.5" placeholder="e.g. 4" />
+          <div class="col col-6">
+            <label class="footer">Subject</label>
+            <select id="fSubj" class="form-select">
+              <option value="">All Subjects</option>
+            </select>
           </div>
         </div>
 
-        <hr class="sep" />
+        <!-- TOP controls (as requested) -->
+        <div class="controls-top">
+          <div class="left">
+            <label class="footer" for="pageSizeTop" style="margin-right:4px">Courses per page</label>
+            <select id="pageSizeTop" class="form-select page-size">
+              <option>10</option><option selected>25</option><option>50</option><option>100</option>
+            </select>
+          </div>
+          <div class="right">
+            <span id="pageInfoTop" class="footer"></span>
+            <button class="page-btn" id="nextTop">Next ›</button>
+          </div>
+        </div>
 
         <div class="table-wrap">
           <table id="tbl">
@@ -166,6 +178,7 @@ hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
           </table>
         </div>
 
+        <!-- Bottom controls (kept for convenience) -->
         <div class="row" style="align-items:center; margin-top:14px">
           <div class="col col-6 pagination">
             <button class="page-btn" id="prev">‹ Prev</button>
@@ -173,7 +186,7 @@ hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
             <button class="page-btn" id="next">Next ›</button>
           </div>
           <div class="col col-6" style="display:flex; gap:10px; justify-content:flex-end; align-items:center">
-            <label class="footer">Rows / page</label>
+            <label class="footer">Courses per page</label>
             <select id="pageSize" class="form-select page-size">
               <option>10</option><option selected>25</option><option>50</option><option>100</option>
             </select>
@@ -185,6 +198,34 @@ hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
   </div>
 
 <script>
+/* ===== Subject mapping (code -> subject name) =====
+   Derived from your list. You can add more as needed. */
+const SUBJECT_MAP = {
+  "AAAS":"African & African Amer Studies","AFSC":"Air Force Science","AMCI":"Ancient Mediterranean Civil",
+  "ANTH":"Anthropology","APPL":"Applied Physics","ARAB":"Arabic","ARCH":"Architecture","ARTS":"Visual Arts",
+  "ASIA":"Asian Studies","ASTR":"Astronomy","BIOE":"Bioengineering","BIOS":"Biosciences","BUSI":"Business",
+  "CEVE":"Civil and Environmental Eng","CHBE":"Chemical & Biomolecular Eng","CHEM":"Chemistry","CHIN":"Chinese",
+  "CLAS":"Classical Studies","CMOR":"Comp Appl Math Operations Rsch","COLL":"College Course","COMM":"Communication",
+  "COMP":"Computer Science","CSCI":"Cognitive Sciences","DSCI":"Data Science","DSRT":"Dissertation/Thesis Submission",
+  "ECON":"Economics","EDES":"Engineering Design","EDUC":"Education","EEPS":"Earth/Environmnt/Planetary Sci",
+  "ELEC":"Electrical & Comp. Engineering","EMBA":"Executive Management","EMSP":"Emergency Med Studies/Practice",
+  "ENGI":"Engineering","ENGL":"English","ENST":"Environmental Studies","FILM":"Film","FOTO":"Photography",
+  "FREN":"French Studies","FWIS":"First-Yr Writing Intensive Sem","GERM":"German Studies","GLBL":"Global Affairs",
+  "GLHT":"Global Health Technologies","GREE":"Greek","HART":"Art History","HEAL":"Health Sciences","HIST":"History",
+  "HONS":"Honors Program","HUMA":"Humanities","INDE":"Industrial Engineering","INDS":"Interdisciplinary Studies",
+  "ITAL":"Italian Language and Culture","JAPA":"Japanese","KINE":"Kinesiology","KORE":"Korean","LALX":"Latin American/Latinx Studies",
+  "LATI":"Latin","LEAD":"Center for Civic Leadership","LING":"Linguistics","LPAP":"Lifetime Phys Activity Program",
+  "MACC":"Master of Accounting","MATH":"Mathematics","MDEM":"Medieval/Early Modern Studies","MDHM":"Medical Humanities",
+  "MDIA":"Media Studies","MECH":"Mechanical Engineering","MGMP":"MBA for Professionals-Evening","MGMW":"MBA for Professionals-Weekend",
+  "MGMT":"Management","MLSC":"Liberal Studies Core/Capstone","MSNE":"Materials Science & NanoEng","MUCH":"Museums and Cultural Heritage",
+  "MUSI":"Music","NAVA":"Naval Science","NEUR":"Neuroscience","NSCI":"Natural Sciences","PHIL":"Philosophy",
+  "PHYS":"Physics","POLI":"Political Science","PLST":"Politics, Law, Social Thought","PORT":"Portuguese",
+  "PSYC":"Psychology","RCEL":"Center Engineering Leadership","RELI":"Religion","SMGT":"Sport Management",
+  "SOCI":"Sociology","SOPA":"Social Policy Analysis","SOPE":"Social Policy Evaluation","SOSC":"Social Sciences",
+  "SPAN":"Spanish","SSPB":"Systems/Synthetic/Phys Biology","STAT":"Statistics","SWGS":"Women, Gender, & Sexuality",
+  "THEA":"Theatre","UNIV":"University Courses"
+};
+
 /* ===== CSV parser (handles quotes, commas, CRLF) ===== */
 function parseCSV(text){
   const rows=[]; let row=[], field="", i=0, c="", q=false;
@@ -198,9 +239,8 @@ function parseCSV(text){
     } else {
       if(c === '"'){ q=true; }
       else if(c === ','){ row.push(field); field=""; }
-      else if(c === '\n'){
-        row.push(field); rows.push(row); row=[]; field="";
-      } else if(c === '\r'){ /* ignore CR */ }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=""; }
+      else if(c === '\r'){ }
       else { field += c; }
     }
   }
@@ -215,7 +255,7 @@ const state = {
   pageSize: 25,
   sortCol: null,
   sortDir: 1,
-  exact: false,
+  exact: true,   // keep “exact” default on for cleaner highlighting
   headers: ["Course","Title","Distribution Group","Analyzing Diversity","Credits","Description"]
 };
 
@@ -223,13 +263,13 @@ function coerceCredits(v){
   const n = parseFloat(String(v).replace(/[^0-9.\-]/g,""));
   return isNaN(n) ? null : n;
 }
-function diversityBadge(v){
-  const yes = /^y(es)?$/i.test(String(v).trim());
-  const no =  /^n(o)?$/i.test(String(v).trim());
-  if(yes) return '<span class="badge yes">Yes</span>';
-  if(no)  return '<span class="badge no">No</span>';
-  return '<span class="badge">'+escapeHTML(String(v||""))+'</span>';
+function diversityBadge(v) {
+  const isAnalyzing = String(v || "").trim().toLowerCase() === "analyzing diversity course";
+  return isAnalyzing
+    ? '<span class="badge yes">Yes</span>'
+    : '<span class="badge no">No</span>';
 }
+
 function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
 function highlight(text, query){
   if(!query) return escapeHTML(text);
@@ -248,6 +288,16 @@ function highlight(text, query){
   }catch(e){ return escapeHTML(text); }
 }
 
+/* Extract subject code from Course string (e.g., "COMP 140" -> "COMP") */
+function getSubjectCode(course){
+  if(!course) return "";
+  const m = String(course).trim().match(/^([A-Za-z]+)/);
+  return m ? m[1].toUpperCase() : "";
+}
+function codeToName(code){
+  return SUBJECT_MAP[code] || code || "";
+}
+
 function ingestCSV(text, name=""){
   const arr = parseCSV(text);
   if(!arr.length){ setStatus("No rows found."); return; }
@@ -264,6 +314,7 @@ function ingestCSV(text, name=""){
       hmap[h] = idx;
     }
   }
+
   const rows = [];
   for(let r=1;r<arr.length;r++){
     const obj = {};
@@ -272,6 +323,8 @@ function ingestCSV(text, name=""){
       obj[h] = (idx != null && idx >=0 && idx < arr[r].length) ? arr[r][idx] : "";
     }
     obj["Credits_num"] = coerceCredits(obj["Credits"]);
+    obj["_subjCode"] = getSubjectCode(obj["Course"]);
+    obj["_subjName"] = codeToName(obj["_subjCode"]);
     rows.push(obj);
   }
   state.rows = rows;
@@ -282,29 +335,42 @@ function ingestCSV(text, name=""){
 }
 
 function populateFilters(){
-  const sel = document.getElementById("fDist");
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">All</option>';
-  const set = new Set();
+  // Distribution Group
+  const selDist = document.getElementById("fDist");
+  const curD = selDist.value;
+  selDist.innerHTML = '<option value="">All</option>';
+  const setD = new Set();
   state.rows.forEach(r=>{
     const v = String(r["Distribution Group"]||"").trim();
-    if(v) set.add(v);
+    if(v) setD.add(v);
   });
-  Array.from(set).sort((a,b)=>a.localeCompare(b)).forEach(v=>{
+  Array.from(setD).sort((a,b)=>a.localeCompare(b)).forEach(v=>{
     const opt = document.createElement("option");
-    opt.value = v; opt.textContent = v; sel.appendChild(opt);
+    opt.value = v; opt.textContent = v; selDist.appendChild(opt);
   });
-  if(cur && Array.from(sel.options).some(o=>o.value===cur)) sel.value = cur;
+  if(curD && Array.from(selDist.options).some(o=>o.value===curD)) selDist.value = curD;
+
+  // Subject (only show subjects present in data; display names)
+  const selS = document.getElementById("fSubj");
+  const curS = selS.value;
+  selS.innerHTML = '<option value="">All Subjects</option>';
+  const presentCodes = new Set(state.rows.map(r=>r["_subjCode"]).filter(Boolean));
+  const items = Array.from(presentCodes).map(code=>({code, name: codeToName(code)}));
+  items.sort((a,b)=>a.name.localeCompare(b.name));
+  items.forEach(({code,name})=>{
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = name || code;
+    selS.appendChild(opt);
+  });
+  if(curS && Array.from(selS.options).some(o=>o.value===curS)) selS.value = curS;
 }
 
 function applyFilters(){
   const q = document.getElementById("q").value.trim();
   const dist = document.getElementById("fDist").value;
   const div = document.getElementById("fDiv").value;
-  const minC = document.getElementById("fMinCred").value;
-  const maxC = document.getElementById("fMaxCred").value;
-  const min = minC === "" ? -Infinity : parseFloat(minC);
-  const max = maxC === "" ? Infinity : parseFloat(maxC);
+  const subjCode = document.getElementById("fSubj").value;
 
   const qtest = (row)=>{
     if(!q) return true;
@@ -317,18 +383,15 @@ function applyFilters(){
 
   const res = state.rows.filter(row=>{
     if(dist && String(row["Distribution Group"]).trim() !== dist) return false;
-    if(div){
-      const val = String(row["Analyzing Diversity"]||"").trim().toLowerCase();
-      const yes = ["yes","y","true","1"].includes(val);
-      const isYesWanted = div.toLowerCase()==="yes";
-      if(yes !== isYesWanted) return false;
+    if (div) {
+      const isAnalyzing = String(row["Analyzing Diversity"] || "")
+        .trim()
+        .toLowerCase() === "analyzing diversity course";
+      const wantYes = div.toLowerCase() === "yes";
+      if (isAnalyzing !== wantYes) return false;
     }
-    const c = row["Credits_num"];
-    if(c != null){
-      if(!(c >= min && c <= max)) return false;
-    } else {
-      if(min !== -Infinity || max !== Infinity){ return false; }
-    }
+
+    if(subjCode && row["_subjCode"] !== subjCode) return false;
     if(!qtest(row)) return false;
     return true;
   });
@@ -379,10 +442,13 @@ function renderTable(){
     tbody.innerHTML = rows.join("");
   }
 
-  document.getElementById("pageInfo").textContent =
-    total ? `Showing ${start+1}-${end} of ${total}` : "0 results";
+  // Update page info in both places
+  const msg = total ? `Showing ${start+1}-${end} of ${total}` : "0 results";
+  document.getElementById("pageInfo").textContent = msg;
+  document.getElementById("pageInfoTop").textContent = msg;
   document.getElementById("prev").disabled = state.page<=1;
   document.getElementById("next").disabled = state.page>=pages;
+  document.getElementById("nextTop").disabled = state.page>=pages;
 }
 
 function exportCSV(){
@@ -427,26 +493,39 @@ function setStatus(msg, isError=false){
 document.getElementById("q").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
 document.getElementById("fDist").addEventListener("change", ()=>{ state.page=1; applyFilters(); });
 document.getElementById("fDiv").addEventListener("change", ()=>{ state.page=1; applyFilters(); });
-document.getElementById("fMinCred").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
-document.getElementById("fMaxCred").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("fSubj").addEventListener("change", ()=>{ state.page=1; applyFilters(); });
+
 document.getElementById("btnExport").addEventListener("click", e=>{ e.preventDefault(); exportCSV(); });
 document.getElementById("btnClear").addEventListener("click", ()=>{
   document.getElementById("q").value="";
   document.getElementById("fDist").value="";
   document.getElementById("fDiv").value="";
-  document.getElementById("fMinCred").value="";
-  document.getElementById("fMaxCred").value="";
-  state.page=1; state.sortCol=null; state.sortDir=1; state.exact=false; updateExactBtn();
+  document.getElementById("fSubj").value="";
+  state.page=1; state.sortCol=null; state.sortDir=1; state.exact=true; updateExactBtn();
   applyFilters();
 });
+
 document.getElementById("prev").addEventListener("click", ()=>{ if(state.page>1){ state.page--; renderTable(); }});
 document.getElementById("next").addEventListener("click", ()=>{
   const pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
   if(state.page<pages){ state.page++; renderTable(); }
 });
-document.getElementById("pageSize").addEventListener("change", e=>{
-  state.pageSize = parseInt(e.target.value,10) || 25; state.page=1; renderTable();
+document.getElementById("nextTop").addEventListener("click", ()=>{
+  const pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+  if(state.page<pages){ state.page++; renderTable(); }
 });
+
+function syncPageSize(val){
+  state.pageSize = parseInt(val,10) || 25; state.page=1; renderTable();
+  // keep the two dropdowns in sync
+  const psTop = document.getElementById("pageSizeTop");
+  const psBottom = document.getElementById("pageSize");
+  if(psTop.value !== String(state.pageSize)) psTop.value = String(state.pageSize);
+  if(psBottom.value !== String(state.pageSize)) psBottom.value = String(state.pageSize);
+}
+document.getElementById("pageSizeTop").addEventListener("change", e=> syncPageSize(e.target.value));
+document.getElementById("pageSize").addEventListener("change", e=> syncPageSize(e.target.value));
+
 document.querySelectorAll("th[data-col]").forEach(th=>{
   th.addEventListener("click", ()=>{
     const col = th.getAttribute("data-col");
