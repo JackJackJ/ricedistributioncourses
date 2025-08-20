@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Course Catalog Viewer</title>
+<style>
+:root{
+  --bs-body-bg:#0b0c10; --bs-body-color:#e9ecef; --bs-muted:#adb5bd;
+  --bs-primary:#4dabf7; --bs-primary-contrast:#081018; --bs-border:#2b3035;
+  --bs-surface:#121418; --bs-surface-2:#161a20;
+  --bs-success:#51cf66; --bs-danger:#ff6b6b; --bs-warning:#ffd43b;
+  --bs-link:#74c0fc; --bs-badge-bg:#2b3035;
+  --shadow:0 6px 20px rgba(0,0,0,.35);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji";
+  background:radial-gradient(1200px 800px at 10% -10%, #1b2a4b 0%, rgba(27,42,75,0) 45%),
+             radial-gradient(900px 600px at 120% 10%, #123e57 0%, rgba(18,62,87,0) 40%),
+             linear-gradient(180deg, #0b0c10 0%, #0d0f14 100%);
+  color:var(--bs-body-color);
+}
+.container{max-width:1100px;margin:24px auto;padding:0 16px}
+.card{
+  background:linear-gradient(180deg,var(--bs-surface),var(--bs-surface-2));
+  border:1px solid var(--bs-border); border-radius:var(--radius); box-shadow:var(--shadow);
+}
+.card-header{
+  padding:18px 20px;border-bottom:1px solid var(--bs-border); display:flex; gap:10px; align-items:center; justify-content:space-between
+}
+.card-body{padding:16px 20px}
+h1{font-size:1.4rem;margin:0;letter-spacing:.3px}
+small.muted{color:var(--bs-muted)}
+.row{display:flex; flex-wrap:wrap; margin:-8px}
+.col{padding:8px}
+.col-3{flex:0 0 25%; max-width:25%}
+.col-4{flex:0 0 33.333%; max-width:33.333%}
+.col-6{flex:0 0 50%; max-width:50%}
+.col-8{flex:0 0 66.666%; max-width:66.666%}
+.col-12{flex:0 0 100%; max-width:100%}
+@media (max-width:900px){.col-3,.col-4,.col-6,.col-8{flex:0 0 100%; max-width:100%}}
+
+.form-control,.form-select{
+  width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--bs-border);
+  background:#0f1218; color:var(--bs-body-color); outline:none; transition:.2s border,.2s box-shadow;
+}
+.form-control::placeholder{color:#6c757d}
+.input-group{display:flex; align-items:stretch; width:100%}
+.input-group .form-control{border-top-right-radius:0;border-bottom-right-radius:0}
+.input-group .btn{border-top-left-radius:0;border-bottom-left-radius:0}
+
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 14px; border-radius:12px; border:1px solid var(--bs-border);
+  background:#12161e; color:#fff; cursor:pointer; transition:.15s transform,.2s background,.2s border;
+  text-decoration:none; user-select:none
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(180deg,#2a6fdb,#1b57bf); border-color:#1e4fae}
+.btn-outline{background:transparent}
+.btn-danger{background:linear-gradient(180deg,#d6336c,#a61e4d); border-color:#801a3f}
+
+.badge{
+  display:inline-block; padding:.35rem .55rem; border-radius:999px; font-size:.75rem; line-height:1;
+  background:var(--bs-badge-bg); border:1px solid var(--bs-border); color:#cbd5e1
+}
+.badge.yes{background:rgba(81,207,102,.12); border-color:rgba(81,207,102,.35); color:#9be9ad}
+.badge.no{background:rgba(255,107,107,.12); border-color:rgba(255,107,107,.35); color:#ffb3b3}
+
+.table-wrap{overflow:auto; border:1px solid var(--bs-border); border-radius:14px}
+table{width:100%; border-collapse:separate; border-spacing:0}
+thead th{
+  position:sticky; top:0; z-index:1; background:#0d0f14; color:#dbe2ea;
+  padding:12px; font-weight:600; text-align:left; border-bottom:1px solid var(--bs-border); white-space:nowrap; cursor:pointer;
+}
+tbody td{padding:12px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:top}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+th .sort{opacity:.6; font-size:.85em; margin-left:.4rem}
+.highlight{background:linear-gradient(transparent 35%, rgba(116,192,252,.25) 35%, rgba(116,192,252,.25) 85%, transparent 85%)}
+
+.pagination{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.page-btn{
+  padding:8px 12px; border:1px solid var(--bs-border); border-radius:10px; background:#0f1218; color:#cfe3ff; cursor:pointer
+}
+.page-btn[disabled]{opacity:.5; cursor:not-allowed}
+.page-size{min-width:96px}
+
+.kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background:#141821; border:1px solid #2b313c; border-bottom-width:2px; border-radius:8px; padding:2px 6px; color:#9fb3c8; font-size:.85em}
+a{color:var(--bs-link)}
+.footer{color:var(--bs-muted); font-size:.9rem; padding-top:10px}
+hr.sep{border:none; border-top:1px solid var(--bs-border); margin:10px 0}
+.notice{color:#9fb3c8}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h1>Distribution Course Viewer</h1>
+        </div>
+        <div class="chips">
+          <a class="btn btn-outline" id="btnClear">Clear</a>
+          <a class="btn btn-primary" id="btnExport" download="filtered_courses.csv">Export Filtered CSV</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col col-8">
+            <div class="input-group">
+              <input id="q" class="form-control" placeholder="Search across all fields (e.g., “anthropology”, “DG II”, “4 credits”, “diversity”)" />
+              <button class="btn" id="btnExact" title="Toggle exact phrase"><span id="exactIcon">≠</span> exact</button>
+            </div>
+            <div class="footer">Tip: press <span class="kbd">/</span> to focus search. Click headers to sort.</div>
+          </div>
+          <div class="col col-4">
+            <div class="notice" id="loadStatus">Loading <code>rice_course_2026.csv</code>…</div>
+          </div>
+
+          <div class="col col-3">
+            <label class="footer">Distribution Group</label>
+            <select id="fDist" class="form-select">
+              <option value="">All</option>
+            </select>
+          </div>
+          <div class="col col-3">
+            <label class="footer">Analyzing Diversity</label>
+            <select id="fDiv" class="form-select">
+              <option value="">All</option>
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+          <div class="col col-3">
+            <label class="footer">Credits (min)</label>
+            <input id="fMinCred" class="form-control" type="number" step="0.5" placeholder="e.g. 3" />
+          </div>
+          <div class="col col-3">
+            <label class="footer">Credits (max)</label>
+            <input id="fMaxCred" class="form-control" type="number" step="0.5" placeholder="e.g. 4" />
+          </div>
+        </div>
+
+        <hr class="sep" />
+
+        <div class="table-wrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th data-col="Course">Course <span class="sort">⇅</span></th>
+                <th data-col="Title">Title <span class="sort">⇅</span></th>
+                <th data-col="Distribution Group">Distribution Group <span class="sort">⇅</span></th>
+                <th data-col="Analyzing Diversity">Analyzing Diversity <span class="sort">⇅</span></th>
+                <th data-col="Credits">Credits <span class="sort">⇅</span></th>
+                <th data-col="Description">Description <span class="sort">⇅</span></th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr><td colspan="6" style="text-align:center; padding:24px; color:#9fb3c8">Loading CSV…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="row" style="align-items:center; margin-top:14px">
+          <div class="col col-6 pagination">
+            <button class="page-btn" id="prev">‹ Prev</button>
+            <span id="pageInfo" class="footer"></span>
+            <button class="page-btn" id="next">Next ›</button>
+          </div>
+          <div class="col col-6" style="display:flex; gap:10px; justify-content:flex-end; align-items:center">
+            <label class="footer">Rows / page</label>
+            <select id="pageSize" class="form-select page-size">
+              <option>10</option><option selected>25</option><option>50</option><option>100</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== CSV parser (handles quotes, commas, CRLF) ===== */
+function parseCSV(text){
+  const rows=[]; let row=[], field="", i=0, c="", q=false;
+  while(i < text.length){
+    c = text[i++];
+    if(q){
+      if(c === '"'){
+        if(text[i] === '"'){ field+='"'; i++; }
+        else { q=false; }
+      } else { field += c; }
+    } else {
+      if(c === '"'){ q=true; }
+      else if(c === ','){ row.push(field); field=""; }
+      else if(c === '\n'){
+        row.push(field); rows.push(row); row=[]; field="";
+      } else if(c === '\r'){ /* ignore CR */ }
+      else { field += c; }
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+const state = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 25,
+  sortCol: null,
+  sortDir: 1,
+  exact: false,
+  headers: ["Course","Title","Distribution Group","Analyzing Diversity","Credits","Description"]
+};
+
+function coerceCredits(v){
+  const n = parseFloat(String(v).replace(/[^0-9.\-]/g,""));
+  return isNaN(n) ? null : n;
+}
+function diversityBadge(v){
+  const yes = /^y(es)?$/i.test(String(v).trim());
+  const no =  /^n(o)?$/i.test(String(v).trim());
+  if(yes) return '<span class="badge yes">Yes</span>';
+  if(no)  return '<span class="badge no">No</span>';
+  return '<span class="badge">'+escapeHTML(String(v||""))+'</span>';
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function highlight(text, query){
+  if(!query) return escapeHTML(text);
+  try{
+    if(state.exact){
+      const idx = String(text).toLowerCase().indexOf(query.toLowerCase());
+      if(idx === -1) return escapeHTML(text);
+      const before = escapeHTML(text.slice(0,idx));
+      const mid = escapeHTML(text.slice(idx, idx+query.length));
+      const after = escapeHTML(text.slice(idx+query.length));
+      return before + '<span class="highlight">' + mid + '</span>' + after;
+    } else {
+      const rx = new RegExp("(" + query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ")", "ig");
+      return escapeHTML(String(text)).replace(rx,'<span class="highlight">$1</span>');
+    }
+  }catch(e){ return escapeHTML(text); }
+}
+
+function ingestCSV(text, name=""){
+  const arr = parseCSV(text);
+  if(!arr.length){ setStatus("No rows found."); return; }
+
+  const hdr = arr[0].map(h=>String(h).trim());
+  const hmap = {};
+  state.headers.forEach(h=>{
+    const idx = hdr.findIndex(x => x.toLowerCase() === h.toLowerCase());
+    hmap[h] = idx;
+  });
+  for(const h of state.headers){
+    if(hmap[h] === -1){
+      const idx = hdr.findIndex(x => x.toLowerCase().includes(h.toLowerCase()));
+      hmap[h] = idx;
+    }
+  }
+  const rows = [];
+  for(let r=1;r<arr.length;r++){
+    const obj = {};
+    for(const h of state.headers){
+      const idx = hmap[h];
+      obj[h] = (idx != null && idx >=0 && idx < arr[r].length) ? arr[r][idx] : "";
+    }
+    obj["Credits_num"] = coerceCredits(obj["Credits"]);
+    rows.push(obj);
+  }
+  state.rows = rows;
+  state.page = 1;
+  populateFilters();
+  applyFilters();
+  setStatus(`${name ? name + " • " : ""}${rows.length} rows loaded`);
+}
+
+function populateFilters(){
+  const sel = document.getElementById("fDist");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All</option>';
+  const set = new Set();
+  state.rows.forEach(r=>{
+    const v = String(r["Distribution Group"]||"").trim();
+    if(v) set.add(v);
+  });
+  Array.from(set).sort((a,b)=>a.localeCompare(b)).forEach(v=>{
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v; sel.appendChild(opt);
+  });
+  if(cur && Array.from(sel.options).some(o=>o.value===cur)) sel.value = cur;
+}
+
+function applyFilters(){
+  const q = document.getElementById("q").value.trim();
+  const dist = document.getElementById("fDist").value;
+  const div = document.getElementById("fDiv").value;
+  const minC = document.getElementById("fMinCred").value;
+  const maxC = document.getElementById("fMaxCred").value;
+  const min = minC === "" ? -Infinity : parseFloat(minC);
+  const max = maxC === "" ? Infinity : parseFloat(maxC);
+
+  const qtest = (row)=>{
+    if(!q) return true;
+    const hay = state.headers.map(h=>String(row[h]||"")).join(" || ");
+    if(state.exact) return hay.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+    const terms = q.split(/\s+/).filter(Boolean);
+    const hayL = hay.toLowerCase();
+    return terms.every(t => hayL.includes(t.toLowerCase()));
+  };
+
+  const res = state.rows.filter(row=>{
+    if(dist && String(row["Distribution Group"]).trim() !== dist) return false;
+    if(div){
+      const val = String(row["Analyzing Diversity"]||"").trim().toLowerCase();
+      const yes = ["yes","y","true","1"].includes(val);
+      const isYesWanted = div.toLowerCase()==="yes";
+      if(yes !== isYesWanted) return false;
+    }
+    const c = row["Credits_num"];
+    if(c != null){
+      if(!(c >= min && c <= max)) return false;
+    } else {
+      if(min !== -Infinity || max !== Infinity){ return false; }
+    }
+    if(!qtest(row)) return false;
+    return true;
+  });
+
+  if(state.sortCol){
+    const col = state.sortCol, dir = state.sortDir;
+    res.sort((a,b)=>{
+      const av = a[col] ?? "", bv = b[col] ?? "";
+      if(col==="Credits"){
+        const an = a["Credits_num"] ?? NaN, bn = b["Credits_num"] ?? NaN;
+        if(isNaN(an) && isNaN(bn)) return 0;
+        if(isNaN(an)) return 1;
+        if(isNaN(bn)) return -1;
+        return (an - bn) * dir;
+      }
+      return String(av).localeCompare(String(bv), undefined, {numeric:true,sensitivity:"base"}) * dir;
+    });
+  }
+
+  state.filtered = res;
+  renderTable();
+}
+
+function renderTable(){
+  const size = state.pageSize;
+  const total = state.filtered.length;
+  const pages = Math.max(1, Math.ceil(total / size));
+  if(state.page > pages) state.page = pages;
+  const start = (state.page-1)*size, end = Math.min(total, start+size);
+
+  const tbody = document.getElementById("tbody");
+  if(total===0){
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#9fb3c8">No matching rows.</td></tr>';
+  } else {
+    const q = document.getElementById("q").value.trim();
+    const rows = [];
+    for(let i=start;i<end;i++){
+      const r = state.filtered[i];
+      rows.push(`<tr>
+        <td>${highlight(r["Course"], q)}</td>
+        <td>${highlight(r["Title"], q)}</td>
+        <td>${highlight(r["Distribution Group"], q)}</td>
+        <td>${diversityBadge(r["Analyzing Diversity"])}</td>
+        <td>${r["Credits"]!==undefined ? highlight(r["Credits"], q) : ""}</td>
+        <td>${highlight(r["Description"], q)}</td>
+      </tr>`);
+    }
+    tbody.innerHTML = rows.join("");
+  }
+
+  document.getElementById("pageInfo").textContent =
+    total ? `Showing ${start+1}-${end} of ${total}` : "0 results";
+  document.getElementById("prev").disabled = state.page<=1;
+  document.getElementById("next").disabled = state.page>=pages;
+}
+
+function exportCSV(){
+  if(!state.filtered.length){ notify("Nothing to export."); return; }
+  const hdr = state.headers.join(",");
+  const esc = v => {
+    const s = String(v ?? "");
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+  };
+  const lines = [hdr];
+  for(const r of state.filtered){
+    lines.push(state.headers.map(h=>esc(r[h])).join(","));
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById("btnExport");
+  a.href = url;
+  a.setAttribute("download","filtered_courses.csv");
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+
+function notify(msg){
+  const n = document.createElement("div");
+  n.textContent = msg;
+  n.style.position="fixed"; n.style.bottom="16px"; n.style.left="50%"; n.style.transform="translateX(-50%)";
+  n.style.background="#101520"; n.style.border="1px solid #2b313c"; n.style.color="#cfe3ff";
+  n.style.padding="10px 14px"; n.style.borderRadius="12px"; n.style.boxShadow="var(--shadow)";
+  n.style.zIndex=9999;
+  document.body.appendChild(n);
+  setTimeout(()=>{ n.style.transition="opacity .4s"; n.style.opacity="0"; setTimeout(()=>n.remove(),400); }, 1600);
+}
+
+function setStatus(msg, isError=false){
+  const el = document.getElementById("loadStatus");
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? "#ffb3b3" : "#9fb3c8";
+}
+
+/* ===== Events & Initialization ===== */
+document.getElementById("q").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("fDist").addEventListener("change", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("fDiv").addEventListener("change", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("fMinCred").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("fMaxCred").addEventListener("input", ()=>{ state.page=1; applyFilters(); });
+document.getElementById("btnExport").addEventListener("click", e=>{ e.preventDefault(); exportCSV(); });
+document.getElementById("btnClear").addEventListener("click", ()=>{
+  document.getElementById("q").value="";
+  document.getElementById("fDist").value="";
+  document.getElementById("fDiv").value="";
+  document.getElementById("fMinCred").value="";
+  document.getElementById("fMaxCred").value="";
+  state.page=1; state.sortCol=null; state.sortDir=1; state.exact=false; updateExactBtn();
+  applyFilters();
+});
+document.getElementById("prev").addEventListener("click", ()=>{ if(state.page>1){ state.page--; renderTable(); }});
+document.getElementById("next").addEventListener("click", ()=>{
+  const pages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+  if(state.page<pages){ state.page++; renderTable(); }
+});
+document.getElementById("pageSize").addEventListener("change", e=>{
+  state.pageSize = parseInt(e.target.value,10) || 25; state.page=1; renderTable();
+});
+document.querySelectorAll("th[data-col]").forEach(th=>{
+  th.addEventListener("click", ()=>{
+    const col = th.getAttribute("data-col");
+    if(state.sortCol === col){ state.sortDir *= -1; } else { state.sortCol = col; state.sortDir = 1; }
+    document.querySelectorAll("th .sort").forEach(s=>s.textContent="⇅");
+    const arrow = state.sortDir>0 ? "↑" : "↓";
+    th.querySelector(".sort").textContent = arrow;
+    applyFilters();
+  });
+});
+function updateExactBtn(){ document.getElementById("exactIcon").textContent = state.exact ? "≡" : "≠"; }
+document.getElementById("btnExact").addEventListener("click", ()=>{
+  state.exact = !state.exact; updateExactBtn(); state.page=1; applyFilters();
+});
+window.addEventListener("keydown", (e)=>{
+  if(e.key==="/"){ e.preventDefault(); document.getElementById("q").focus(); }
+});
+
+/* Auto-load the CSV from same folder */
+async function loadCSV(){
+  const filename = "rice_courses_2026.csv";
+  try{
+    setStatus(`Loading ${filename}…`);
+    const res = await fetch(filename, {cache: "no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    ingestCSV(text, filename);
+  }catch(err){
+    setStatus(`Could not load ${filename}. ${location.protocol==="file:" ? "This is likely due to browser restrictions on file://. Please open this page via a local web server." : ""}`, true);
+    const tbody = document.getElementById("tbody");
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#ffb3b3">Failed to load CSV.</td></tr>';
+  }
+}
+loadCSV();
+</script>
+</body>
+</html>
