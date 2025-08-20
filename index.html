@@ -452,24 +452,41 @@ function renderTable(){
 }
 
 function exportCSV(){
-  if(!state.filtered.length){ notify("Nothing to export."); return; }
-  const hdr = state.headers.join(",");
+  if (!state.filtered.length) { notify("Nothing to export."); return; }
+
+  // headers + rows (escaped)
   const esc = v => {
     const s = String(v ?? "");
-    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const lines = [hdr];
-  for(const r of state.filtered){
-    lines.push(state.headers.map(h=>esc(r[h])).join(","));
+  const lines = [
+    state.headers.join(","),                                          // header row
+    ...state.filtered.map(r => state.headers.map(h => esc(r[h])).join(",")) // data rows
+  ];
+
+  // Add UTF-8 BOM and CRLF for Excel compatibility
+  const csv = "\uFEFF" + lines.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+
+  // IE/Edge legacy
+  if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+    window.navigator.msSaveOrOpenBlob(blob, "filtered_courses.csv");
+    return;
   }
-  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+
   const url = URL.createObjectURL(blob);
-  const a = document.getElementById("btnExport");
-  a.href = url;
-  a.setAttribute("download","filtered_courses.csv");
-  a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "filtered_courses.csv");
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  // cleanup
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
 
 function notify(msg){
   const n = document.createElement("div");
